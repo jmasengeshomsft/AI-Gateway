@@ -12,14 +12,18 @@ resource "azurerm_resource_group" "rg" {
 resource "azurerm_ai_services" "ai-services" {
   for_each = var.openai_config
 
-  name                               = "${each.value.name}-${random_string.random.result}"
+  name                               = "${each.value.name}-${var.app_suffix}"
   location                           = each.value.location
   resource_group_name                = azurerm_resource_group.rg.name
   sku_name                           = var.openai_sku
   local_authentication_enabled       = true
   public_network_access              = "Enabled"
   outbound_network_access_restricted = false
-  custom_subdomain_name              = "${lower(each.value.name)}-${random_string.random.result}"
+  custom_subdomain_name              = "${lower(each.value.name)}-${var.app_suffix}"
+  
+  lifecycle {
+    ignore_changes = [custom_subdomain_name]
+  }
 }
 
 resource "azurerm_cognitive_deployment" "gpt-4o" {
@@ -40,10 +44,28 @@ resource "azurerm_cognitive_deployment" "gpt-4o" {
   }
 }
 
+resource "azurerm_cognitive_deployment" "embedding" {
+  for_each = var.openai_config
+
+  name                 = var.embedding_openai_deployment_name
+  cognitive_account_id = azurerm_ai_services.ai-services[each.key].id
+
+  sku {
+    name     = "GlobalStandard" # "GlobalStandard" # "Standard" # DataZoneStandard, GlobalBatch, GlobalStandard and ProvisionedManaged
+    capacity = var.openai_model_capacity
+  }
+
+  model {
+    format  = "OpenAI"
+    name    = var.openai_model_name_embedding    # "gpt-4o"
+    version = var.openai_model_version_embedding # "2024-08-06"
+  }
+}
+
 # Terraform azurerm provider doesn't support yet creating API Management instances with v2 SKU.
 resource "azapi_resource" "apim" {
   type                      = "Microsoft.ApiManagement/service@2024-06-01-preview"
-  name                      = "${var.apim_resource_name}-${random_string.random.result}"
+  name                      = "${var.apim_resource_name}-${var.app_suffix}"
   parent_id                 = azurerm_resource_group.rg.id
   location                  = var.apim_resource_location # SKU BasicV2 is not yet supported in the region Sweden Central
   schema_validation_enabled = true
