@@ -1,30 +1,34 @@
 
-resource_group_name     = "lab-backend-pool-load-balancing-tf"
-resource_group_location = "westeurope"
+app_suffix              = "eywwcl"
+subscription_id         = "38bfc61d-d89a-4df6-b8fb-0c14568dcf29"
+resource_group_name     = "openai-ai-gateway-demo"
+resource_group_location = "eastus"
+apim_resource_location = "eastus"
 apim_sku                = "StandardV2"
-openai_deployment_name  = "gpt-4o"
-openai_model_name       = "gpt-4o"
-openai_model_version    = "2024-08-06"
-openai_model_capacity   = "8"
 openai_api_version      = "2024-10-21"
 openai_config           = {
-    openai-uks = {
+    openai-1 = {
       name     = "openai1",
       location = "eastus",
       priority = 1,
-      weight   = 100
-    },
-    openai-swc = {
-      name     = "openai2",
-      location = "eastus",
-      priority = 2,
       weight   = 50
     },
-    openai-frc = {
-      name     = "openai3",
-      location = "eastus",
-      priority = 2,
-      weight   = 50
-    }
+    # openai-1 = {
+    #   name     = "openai2",
+    #   location = "eastus",
+    #   priority = 1,
+    #   weight   = 50
+    # },
+    # openai-3 = {
+    #   name     = "openai3",
+    #   location = "eastus",
+    #   priority = 1,
+    #   weight   = 50
+    # }
   }
+
+vnet_name                          = "ai-gateway-vnet"
+vnet_address_space                 = "10.0.254.0/24"
+subnet_apim_address_space          = "10.0.254.0/27"
+subnet_private_endpoints_address_space = "10.0.254.128/25"
 

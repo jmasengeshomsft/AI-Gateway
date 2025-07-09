@@ -8,6 +8,11 @@
             <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
         </set-header>
         <set-backend-service backend-id="{backend-id}" />
+        <azure-openai-emit-token-metric namespace="openai">
+            <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
+            <dimension name="Product" value="@(context.Product.Id)" />
+            <dimension name="Model" value="@(context.Request.MatchedParameters["deployment-id"])" />
+        </azure-openai-emit-token-metric>
     </inbound>
     <backend>
         <retry count="2" 
