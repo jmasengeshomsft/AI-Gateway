@@ -127,7 +127,33 @@ variable "apim_resource_location" {
 
 variable "apim_sku" {
   type        = string
-  default     = "BasicV2"
+  default     = "StandardV2"  # Changed from BasicV2 to enable auto scaling
+  description = "The SKU of the API Management service. StandardV2 or higher required for auto scaling."
+}
+
+variable "apim_sku_capacity" {
+  type        = number
+  default     = 1
+  description = "The initial capacity (scale units) of the API Management service"
+}
+
+# New variable for auto scaling configuration
+variable "enable_apim_autoscale" {
+  type        = bool
+  default     = true
+  description = "Enable auto scaling for APIM"
+}
+
+variable "apim_autoscale_min_capacity" {
+  type        = number
+  default     = 1
+  description = "Minimum number of scale units for auto scaling"
+}
+
+variable "apim_autoscale_max_capacity" {
+  type        = number
+  default     = 10
+  description = "Maximum number of scale units for auto scaling"
 }
 
 variable "openai_api_version" {
@@ -153,4 +179,10 @@ variable "subnet_apim_address_space" {
 variable "subnet_private_endpoints_address_space" {
   description = "Address space for the private endpoints subnet"
   type        = string
+}
+
+variable "workspace_openai_dimension" {
+  description = "The dimension of the OpenAI workspace"
+  type        = string
+  default     = "openai"
 }

@@ -1,13 +1,76 @@
-resource "random_string" "random" {
-  length  = 8
-  lower   = true
-  special = false
+
+locals {
+  service_deployments = {
+    for combo in flatten([
+      for svc_key, svc in var.openai_config : [
+        for dep_key, dep in var.openai_deployments : {
+          key      = "${svc_key}-${dep_key}"
+          svc_key  = svc_key
+          svc      = svc
+          dep_key  = dep_key
+          dep      = dep
+        }
+      ]
+    ]) : combo.key => {
+      svc_key = combo.svc_key
+      svc     = combo.svc
+      dep_key = combo.dep_key
+      dep     = combo.dep
+    }
+  }
 }
+
 
 resource "azurerm_resource_group" "rg" {
   name     = var.resource_group_name
   location = var.resource_group_location
 }
+
+
+// create a virtual network with 10.0.254.0/24. It should have two subnets:
+// 1. subnet1 with address space /27 called apim
+// 2. subnet2 with address space /25 called private-endpoints
+
+resource "azurerm_virtual_network" "vnet" {
+  name                = "${var.vnet_name}-${var.app_suffix}"
+  address_space       = [var.vnet_address_space]
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet" "subnet_apim" {
+  name                 = "apim"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [var.subnet_apim_address_space]
+
+  delegation {
+    name = "webserverfarmdelegation"
+    service_delegation {
+      name = "Microsoft.Web/serverFarms"
+      # actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
+}
+
+resource "azurerm_network_security_group" "apim_nsg" {
+  name                = "apim-nsg"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+}
+
+resource "azurerm_subnet_network_security_group_association" "apim_nsg_assoc" {
+  subnet_id                 = azurerm_subnet.subnet_apim.id
+  network_security_group_id = azurerm_network_security_group.apim_nsg.id
+}
+
+resource "azurerm_subnet" "subnet_private_endpoints" {
+  name                 = "private-endpoints"
+  resource_group_name  = azurerm_resource_group.rg.name
+  virtual_network_name = azurerm_virtual_network.vnet.name
+  address_prefixes     = [var.subnet_private_endpoints_address_space]
+}
+
 
 resource "azurerm_ai_services" "ai-services" {
   for_each = var.openai_config
@@ -17,48 +80,57 @@ resource "azurerm_ai_services" "ai-services" {
   resource_group_name                = azurerm_resource_group.rg.name
   sku_name                           = var.openai_sku
   local_authentication_enabled       = true
-  public_network_access              = "Enabled"
-  outbound_network_access_restricted = false
-  custom_subdomain_name              = "${lower(each.value.name)}-${var.app_suffix}"
-  
+  public_network_access              = "Disabled"
+  outbound_network_access_restricted = true
+  custom_subdomain_name              = "${each.value.name}-${var.app_suffix}"
+
+  network_acls {
+    default_action = "Deny"
+    virtual_network_rules {
+      subnet_id = azurerm_subnet.subnet_apim.id
+    }
+  }
+
   lifecycle {
     ignore_changes = [custom_subdomain_name]
   }
 }
 
-resource "azurerm_cognitive_deployment" "gpt-4o" {
-  for_each = var.openai_config
+resource "azurerm_monitor_diagnostic_setting" "ai_services_diag" {
+  for_each            = var.openai_config
+  name                = "${each.value.name}-diag-${var.app_suffix}"
+  target_resource_id  = azurerm_ai_services.ai-services[each.key].id
+  log_analytics_workspace_id = var.log_analytics_workspace_id
 
-  name                 = var.openai_deployment_name
-  cognitive_account_id = azurerm_ai_services.ai-services[each.key].id
-
-  sku {
-    name     = "GlobalStandard" # "GlobalStandard" # "Standard" # DataZoneStandard, GlobalBatch, GlobalStandard and ProvisionedManaged
-    capacity = var.openai_model_capacity
+  enabled_log {
+    category = "Audit"
   }
 
-  model {
-    format  = "OpenAI"
-    name    = var.openai_model_name    # "gpt-4o"
-    version = var.openai_model_version # "2024-08-06"
+  enabled_log {
+    category = "RequestResponse"
+  }
+
+  metric {
+    category = "AllMetrics"
+    enabled  = true
   }
 }
 
-resource "azurerm_cognitive_deployment" "embedding" {
-  for_each = var.openai_config
+resource "azurerm_cognitive_deployment" "deploy" {
+  for_each = local.service_deployments
 
-  name                 = var.embedding_openai_deployment_name
-  cognitive_account_id = azurerm_ai_services.ai-services[each.key].id
+  name                 = each.value.dep.deployment_name
+  cognitive_account_id = azurerm_ai_services.ai-services[each.value.svc_key].id
 
   sku {
-    name     = "GlobalStandard" # "GlobalStandard" # "Standard" # DataZoneStandard, GlobalBatch, GlobalStandard and ProvisionedManaged
-    capacity = var.openai_model_capacity
+    name     = "GlobalStandard"
+    capacity = each.value.dep.model_capacity
   }
 
   model {
     format  = "OpenAI"
-    name    = var.openai_model_name_embedding    # "gpt-4o"
-    version = var.openai_model_version_embedding # "2024-08-06"
+    name    = each.value.dep.model_name
+    version = each.value.dep.model_version
   }
 }
 
@@ -81,8 +153,11 @@ resource "azapi_resource" "apim" {
     }
     properties = {
       publisherEmail      = "noreply@microsoft.com"
-      publisherName       = "Microsoft"
-      virtualNetworkType  = "None"
+      publisherName       = "Microsoft
+      virtualNetworkType  = "External"
+      virtualNetworkConfiguration = {
+        subnetResourceId = azurerm_subnet.subnet_apim.id
+      }
       publicNetworkAccess = "Enabled"
     }
   }
@@ -108,7 +183,7 @@ resource "azurerm_api_management_api" "apim-api-openai" {
   path                  = "openai"
   protocols             = ["https"]
   service_url           = null
-  subscription_required = false
+  subscription_required = true
   api_type              = "http"
 
   import {

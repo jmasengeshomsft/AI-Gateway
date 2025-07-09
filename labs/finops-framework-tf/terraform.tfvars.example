@@ -1,0 +1,73 @@
+# Example Terraform variables file for FinOps Framework
+# Copy this file to terraform.tfvars and update the values
+
+# Required: Your Azure subscription ID
+subscription_id = "your-subscription-id-here"
+
+# Required: Your Azure AD Object ID for role assignments
+current_user_object_id = "your-object-id-here"
+
+# Optional: Resource group configuration
+resource_group_name = "rg-finops-framework"
+location           = "East US"
+
+# Optional: APIM configuration
+apim_sku                 = "Developer_1"
+openai_resource_location = "East US"
+openai_api_version       = "2024-02-01"
+
+# Optional: OpenAI model deployments
+openai_deployments = [
+  {
+    name     = "gpt-35-turbo"
+    model    = "gpt-35-turbo"
+    version  = "0613"
+    sku      = "Standard"
+    capacity = 10
+  },
+  {
+    name     = "gpt-4"
+    model    = "gpt-4"
+    version  = "0613"
+    sku      = "Standard"
+    capacity = 5
+  }
+]
+
+# Optional: APIM Products configuration
+apim_products_config = [
+  {
+    name         = "basic"
+    display_name = "Basic"
+    tpm          = 1000
+  },
+  {
+    name         = "premium"
+    display_name = "Premium"
+    tpm          = 5000
+  }
+]
+
+# Optional: APIM Users configuration
+apim_users_config = [
+  {
+    name       = "testuser"
+    first_name = "Test"
+    last_name  = "User"
+    email      = "test@example.com"
+  }
+]
+
+# Optional: APIM Subscriptions configuration
+apim_subscriptions_config = [
+  {
+    name         = "basic-subscription"
+    display_name = "Basic Subscription"
+    product      = "basic"
+  },
+  {
+    name         = "premium-subscription"
+    display_name = "Premium Subscription"
+    product      = "premium"
+  }
+]

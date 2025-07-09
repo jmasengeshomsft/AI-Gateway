@@ -1,0 +1,30 @@
+<policies>
+    <inbound>
+        <!-- IP Whitelisting Policy - Apply to entire APIM -->
+        <ip-filter action="allow">
+            <!-- Replace these with your actual allowed IP addresses -->
+            <address>98.52.34.232</address>
+        </ip-filter>
+    </inbound>
+    
+    <backend>
+        <!-- No base element needed in global policy -->
+    </backend>
+    
+    <outbound>
+        <!-- Add security headers -->
+        <set-header name="X-Content-Type-Options" exists-action="override">
+            <value>nosniff</value>
+        </set-header>
+        <set-header name="X-Frame-Options" exists-action="override">
+            <value>DENY</value>
+        </set-header>
+        <set-header name="X-XSS-Protection" exists-action="override">
+            <value>1; mode=block</value>
+        </set-header>
+    </outbound>
+    
+    <on-error>
+        <!-- No base element needed in global policy -->
+    </on-error>
+</policies>
