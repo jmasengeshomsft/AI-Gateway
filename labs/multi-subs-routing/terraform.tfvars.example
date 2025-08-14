@@ -1,0 +1,155 @@
+# Multi-Subscription AI Gateway Configuration Example
+# Copy this file to terraform.tfvars and update with your actual values
+
+# Project Configuration
+app_suffix             = "multi-sub001"  # Unique suffix for resource naming
+apim_resource_name     = "apim"          # API Management resource name
+apim_resource_location = "eastus2"       # Primary region for APIM gateway
+apim_sku               = "StandardV2"    # APIM SKU (StandardV2 required for VNet integration)
+apim_sku_capacity      = 1               # APIM capacity units
+
+# Network Configuration for APIM Gateway
+vnet_name                              = "ai-gateway-network"  # VNet name for APIM
+vnet_address_space                     = "10.0.254.0/24"      # Address space for APIM VNet
+subnet_apim_address_space              = "10.0.254.0/27"      # Subnet for APIM gateway
+subnet_private_endpoints_address_space = "10.0.254.128/25"    # Subnet for private endpoints
+
+# OpenAI Configuration
+openai_sku = "S0"  # Standard SKU for Azure OpenAI services
+
+# Auto Scaling Configuration
+enable_apim_autoscale       = true   # Enable APIM auto-scaling
+apim_autoscale_min_capacity = 1      # Minimum capacity units
+apim_autoscale_max_capacity = 10     # Maximum capacity units
+
+# Multi-Subscription AI Configuration
+# Configure multiple subscriptions with AI services for load distribution and scaling
+subscription_configs = {
+  subscription1 = {
+    # Replace with your first subscription ID
+    subscription_id         = "00000000-0000-0000-0000-000000000001"
+    resource_group_name     = "ai-subscription1-rg"
+    resource_group_location = "eastus2"
+    
+    # VNet Configuration for subscription1
+    vnet_name                          = "ai-services-vnet1"
+    vnet_address_space                 = "10.1.0.0/16"      # Different address space from APIM
+    subnet_ai_services_address_space   = "10.1.1.0/24"
+    
+    # OpenAI Services Configuration
+    openai_config = {
+      openai-1 = {
+        name     = "openai1"    # OpenAI service name
+        location = "eastus2"    # Region for deployment
+        priority = 1            # Backend priority (1 = highest)
+        weight   = 50           # Load balancing weight
+      }
+      openai-2 = {
+        name     = "openai2"
+        location = "eastus"
+        priority = 1
+        weight   = 50
+      }
+    }
+    
+    # Model Deployments for subscription1
+    openai_deployments = {
+      embedding = {
+        deployment_name = "embedding"              # Deployment name in APIM
+        model_name      = "text-embedding-3-small" # Azure OpenAI model name
+        model_version   = "1"                      # Model version
+        model_capacity  = 1                        # TPM capacity (adjust based on quota)
+      }
+      # Add more deployments as needed
+      # gpt35turbo = {
+      #   deployment_name = "gpt-35-turbo"
+      #   model_name      = "gpt-35-turbo"
+      #   model_version   = "0125"
+      #   model_capacity  = 1
+      # }
+    }
+  }
+
+  subscription2 = {
+    # Replace with your second subscription ID
+    subscription_id         = "00000000-0000-0000-0000-000000000002"
+    resource_group_name     = "ai-subscription2-rg"
+    resource_group_location = "eastus"
+    
+    # VNet Configuration for subscription2
+    vnet_name                          = "ai-services-vnet2"
+    vnet_address_space                 = "10.2.0.0/16"      # Different address space
+    subnet_ai_services_address_space   = "10.2.1.0/24"
+    
+    # OpenAI Services Configuration
+    openai_config = {
+      openai-3 = {
+        name     = "openai3"
+        location = "eastus"
+        priority = 2            # Lower priority than subscription1
+        weight   = 30
+      }
+      openai-4 = {
+        name     = "openai4"
+        location = "westus"     # Different region for geo-distribution
+        priority = 2
+        weight   = 30
+      }
+    }
+
+    # Model Deployments for subscription2
+    openai_deployments = {
+      gpt4o = {
+        deployment_name = "gpt-4o"
+        model_name      = "gpt-4o"
+        model_version   = "2024-08-06"
+        model_capacity  = 1
+      }
+      embedding = {
+        deployment_name = "embedding"
+        model_name      = "text-embedding-3-small"
+        model_version   = "1"
+        model_capacity  = 1
+      }
+      # Add more deployments as needed
+    }
+  }
+
+  # Add more subscriptions as needed
+  # subscription3 = {
+  #   subscription_id         = "00000000-0000-0000-0000-000000000003"
+  #   resource_group_name     = "ai-subscription3-rg"
+  #   resource_group_location = "westus2"
+  #   
+  #   vnet_name                          = "ai-services-vnet3"
+  #   vnet_address_space                 = "10.3.0.0/16"
+  #   subnet_ai_services_address_space   = "10.3.1.0/24"
+  #   
+  #   openai_config = {
+  #     openai-5 = {
+  #       name     = "openai5"
+  #       location = "westus2"
+  #       priority = 3
+  #       weight   = 20
+  #     }
+  #   }
+  #   
+  #   openai_deployments = {
+  #     gpt4o = {
+  #       deployment_name = "gpt-4o"
+  #       model_name      = "gpt-4o"
+  #       model_version   = "2024-08-06"
+  #       model_capacity  = 1
+  #     }
+  #   }
+  # }
+}
+
+# Configuration Notes:
+# 1. Ensure subscription IDs are valid and you have Contributor access
+# 2. Choose regions based on Azure OpenAI service availability
+# 3. Adjust model capacities based on your quota limits
+# 4. Use different VNet address spaces to avoid conflicts
+# 5. Priority 1 = highest priority backends, 2 = medium, 3 = lowest
+# 6. Weights determine load distribution within the same priority level
+# 7. Model versions should match available versions in Azure OpenAI
