@@ -1,6 +1,6 @@
 # APIM Gateway Module (deployed in primary subscription)
 module "apim_gateway" {
-  source = "../../modules/apim-gateway"
+  source = "../../modules-tf/apim-gateway"
   
   providers = {
     azurerm = azurerm.primary
@@ -41,7 +41,7 @@ module "apim_gateway" {
 
 # AI Services in Subscription 1
 module "ai_subscription_1" {
-  source = "../../modules/ai-subscription"
+  source = "../../modules-tf/ai-subscription"
   
   providers = {
     azurerm = azurerm.subscription1
@@ -74,7 +74,7 @@ module "ai_subscription_1" {
 
 # AI Services in Subscription 2  
 module "ai_subscription_2" {
-  source = "../../modules/ai-subscription"
+  source = "../../modules-tf/ai-subscription"
   
   providers = {
     azurerm = azurerm.subscription2
