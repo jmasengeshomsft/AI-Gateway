@@ -18,6 +18,19 @@ terraform {
   }
 }
 
+# Primary provider (existing subscription)
+provider "azurerm" {
+  alias = "primary"
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+  }
+  subscription_id = var.subscription_id
+}
+
+
+# Default provider (same as primary for backward compatibility)
 provider "azurerm" {
   features {
     resource_group {

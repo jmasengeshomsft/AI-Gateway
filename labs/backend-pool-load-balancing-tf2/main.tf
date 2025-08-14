@@ -179,6 +179,8 @@ resource "azurerm_cognitive_deployment" "deploy" {
   }
 
   rai_policy_name = local.rai_policy_names[each.value.svc_key]
+
+  depends_on = [azapi_resource.ai_content_filter]
 }
 
 # Terraform azurerm provider doesn't support yet creating API Management instances with v2 SKU.
@@ -413,35 +415,35 @@ resource "azapi_resource" "apim_api_diagnostic" {
   }
 }
 
-resource "azurerm_application_insights_workbook" "alerts" {
-  name                    = "5388f0b3-f17a-4f1b-8c53-e9c1246ea26f"
-  resource_group_name     = azurerm_resource_group.rg.name
-  location                = azurerm_resource_group.rg.location
+# resource "azurerm_application_insights_workbook" "alerts" {
+#   name                    = "5388f0b3-f17a-4f1b-8c53-e9c1246ea26f"
+#   resource_group_name     = azurerm_resource_group.rg.name
+#   location                = azurerm_resource_group.rg.location
 
-  category       = "workbook"
-  display_name   = "Alerts Workbook"
-  data_json      = file("${path.module}/workbooks/alerts.json")
-}
+#   category       = "workbook"
+#   display_name   = "Alerts Workbook"
+#   data_json      = file("${path.module}/workbooks/alerts.json")
+# }
 
-# Azure OpenAI Insights Workbook
-resource "azurerm_application_insights_workbook" "azure_openai_insights" {
-  name                    = "cf545a5a-d1b2-49fe-8c53-5fe5869577d2"
-  resource_group_name     = azurerm_resource_group.rg.name
-  location                = azurerm_resource_group.rg.location
-  category       = "workbook"
-  display_name   = "Azure OpenAI Insights"
-  data_json      = file("${path.module}/workbooks/azure-openai-insights.json")
-}
+# # Azure OpenAI Insights Workbook
+# resource "azurerm_application_insights_workbook" "azure_openai_insights" {
+#   name                    = "cf545a5a-d1b2-49fe-8c53-5fe5869577d2"
+#   resource_group_name     = azurerm_resource_group.rg.name
+#   location                = azurerm_resource_group.rg.location
+#   category       = "workbook"
+#   display_name   = "Azure OpenAI Insights"
+#   data_json      = file("${path.module}/workbooks/azure-openai-insights.json")
+# }
 
-# Cost Analysis Workbook
-resource "azurerm_application_insights_workbook" "cost_analysis" {
-  name                    = "6484f3bd-0e97-48e7-96a8-c6dd6606fe0b"
-  resource_group_name     = azurerm_resource_group.rg.name
-  location                = azurerm_resource_group.rg.location
-  category       = "workbook"
-  display_name   = "Cost Analysis"
-  data_json = file("${path.module}/workbooks/cost-analysis.json")
-}
+# # Cost Analysis Workbook
+# resource "azurerm_application_insights_workbook" "cost_analysis" {
+#   name                    = "6484f3bd-0e97-48e7-96a8-c6dd6606fe0b"
+#   resource_group_name     = azurerm_resource_group.rg.name
+#   location                = azurerm_resource_group.rg.location
+#   category       = "workbook"
+#   display_name   = "Cost Analysis"
+#   data_json = file("${path.module}/workbooks/cost-analysis.json")
+# }
 
 ### Alert Rules and Notifications
 # Action Group for email notifications
@@ -677,15 +679,26 @@ resource "azurerm_monitor_autoscale_setting" "apim_autoscale" {
 
 ### Global Security Policies
 # Apply IP whitelisting policy to the entire APIM instance using azapi_resource
-resource "azapi_resource" "whitelist-global_policy" {
-  type      = "Microsoft.ApiManagement/service/policies@2024-05-01"
-  name      = "policy"
-  parent_id = azapi_resource.apim.id
+# resource "azapi_resource" "whitelist-global_policy" {
+#   type      = "Microsoft.ApiManagement/service/policies@2024-05-01"
+#   name      = "policy"
+#   parent_id = azapi_resource.apim.id
 
-  body = {
-    properties = {
-      format = "xml"
-      value  = file("global-policy.xml")
-    }
-  }
+#   body = {
+#     properties = {
+#       format = "xml"
+#       value  = file("global-policy.xml")
+#     }
+#   }
+
+#   lifecycle {
+#     ignore_changes = [body]
+#   }
+# }
+
+### Alternative approach using azurerm provider instead of azapi
+### (Comment out the azapi_resource block and use this instead)
+resource "azurerm_api_management_policy" "global_policy" {
+  api_management_id   = azapi_resource.apim.id
+  xml_content         = file("global-policy.xml")
 }

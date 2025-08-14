@@ -186,3 +186,4 @@ variable "workspace_openai_dimension" {
   type        = string
   default     = "openai"
 }
+
