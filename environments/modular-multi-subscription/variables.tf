@@ -15,6 +15,12 @@ variable "subscription_configs" {
     subscription_id         = string
     resource_group_name     = string
     resource_group_location = string
+    
+    # VNet Configuration
+    vnet_name                          = string
+    vnet_address_space                 = string
+    subnet_ai_services_address_space   = string
+    
     openai_config = map(object({
       name     = string
       location = string

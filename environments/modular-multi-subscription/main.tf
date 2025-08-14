@@ -58,8 +58,16 @@ module "ai_subscription_1" {
   openai_deployments = var.subscription_configs.subscription1.openai_deployments
   openai_sku         = var.openai_sku
 
-  # Integration with APIM
+  # VNet Configuration
+  vnet_name                          = var.subscription_configs.subscription1.vnet_name
+  vnet_address_space                 = var.subscription_configs.subscription1.vnet_address_space
+  subnet_ai_services_address_space   = var.subscription_configs.subscription1.subnet_ai_services_address_space
+
+  # Integration with APIM (cross-subscription VNet peering)
+  apim_vnet_id               = module.apim_gateway.apim_vnet_id
+  apim_vnet_name             = module.apim_gateway.apim_vnet_name
   apim_subnet_id             = module.apim_gateway.apim_subnet_id
+  apim_resource_group_name   = module.apim_gateway.resource_group_name
   apim_principal_id          = module.apim_gateway.apim_principal_id
   log_analytics_workspace_id = module.apim_gateway.log_analytics_workspace_id
 }
@@ -83,8 +91,16 @@ module "ai_subscription_2" {
   openai_deployments = var.subscription_configs.subscription2.openai_deployments
   openai_sku         = var.openai_sku
 
-  # Integration with APIM
+  # VNet Configuration
+  vnet_name                          = var.subscription_configs.subscription2.vnet_name
+  vnet_address_space                 = var.subscription_configs.subscription2.vnet_address_space
+  subnet_ai_services_address_space   = var.subscription_configs.subscription2.subnet_ai_services_address_space
+
+  # Integration with APIM (cross-subscription VNet peering)
+  apim_vnet_id               = module.apim_gateway.apim_vnet_id
+  apim_vnet_name             = module.apim_gateway.apim_vnet_name
   apim_subnet_id             = module.apim_gateway.apim_subnet_id
+  apim_resource_group_name   = module.apim_gateway.resource_group_name
   apim_principal_id          = module.apim_gateway.apim_principal_id
   log_analytics_workspace_id = module.apim_gateway.log_analytics_workspace_id
 }
