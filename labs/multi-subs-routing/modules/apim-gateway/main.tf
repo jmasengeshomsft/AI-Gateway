@@ -235,7 +235,7 @@ resource "azapi_resource" "apim_backend" {
     properties = {
       description = "Backend for ${each.value.name}"
       type        = "Single"
-      url         = each.value.endpoint
+      url         = "${each.value.endpoint}/openai"
       protocol    = "http"
       tls = {
         validateCertificateChain = true
@@ -245,6 +245,45 @@ resource "azapi_resource" "apim_backend" {
   }
 
   depends_on = [azurerm_api_management_api.apim_api_openai]
+}
+
+# Add circuit breakers to the backends
+resource "azapi_update_resource" "apim_backend_circuit_breaker" {
+  for_each = {
+    for backend in local.all_backends : backend.name => backend
+  }
+
+  type        = "Microsoft.ApiManagement/service/backends@2023-09-01-preview"
+  resource_id = azapi_resource.apim_backend[each.key].id
+
+  body = {
+    properties = {
+      circuitBreaker = {
+        rules = [
+          {
+            failureCondition = {
+              count = 1
+              errorReasons = [
+                "Server errors"
+              ]
+              interval = "PT5M"
+              statusCodeRanges = [
+                {
+                  min = 429
+                  max = 429
+                }
+              ]
+            }
+            name             = "openAIBreakerRule"
+            tripDuration     = "PT1M"
+            acceptRetryAfter = true
+          }
+        ]
+      }
+    }
+  }
+
+  depends_on = [azapi_resource.apim_backend]
 }
 
 # Dynamic backend pool creation (only if backends are provided)
